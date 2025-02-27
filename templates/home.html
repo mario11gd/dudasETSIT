@@ -321,7 +321,7 @@
 
         .issue-content {
             flex: 1;
-            max-width: 95%; 
+            max-width: 90%; 
             word-wrap: break-word; 
             overflow-wrap: break-word;
         }
@@ -445,7 +445,7 @@
                                 {% endfor %}
                             </div>
                         </div>
-                        <p> {{ issue.description }} </p>
+                        <p> {{ issue.description|safe }} </p>
                         <p><i>Duda subida por {{ issue.user.username }} hace {{ issue.time_since_created }}</i></p>
                     </div>
                 </div>

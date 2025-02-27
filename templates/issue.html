@@ -130,6 +130,24 @@
             color: #555;
             margin-bottom: 20px;
             word-wrap: break-word;
+            max-width: 600px;
+        }
+
+        .issue-container textarea {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 20px;
+            word-wrap: break-word;
+            display: none;
+            border: none; 
+            background: none;
+            font-family: Arial, sans-serif; 
+            resize: none; 
+            outline: none; 
+            padding: 0; 
+            width: 600px; 
+            height: auto;
+            line-height: 1.5;
         }
 
         .issue-container button {
@@ -210,12 +228,22 @@
             background-color: #f1f1f1;
             width: fit-content;
         }
-
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            align-items: center;
+        }
         .username {
             font-weight: bold;
             font-size: 14px;
             color: #3b3b3b;
+        }
+
+        .message-header img {
             margin: 0;
+            width: 15px;
+            cursor: pointer;
         }
 
         .content {
@@ -332,7 +360,8 @@
                             {% endfor %}
                         </div>
                     </div>
-                    <h2>{{ issue.description }}</h2>
+                    <h2 id="description">{{ issue.description|safe }}</h2>
+                    <textarea id="edit-description"></textarea>
                     {% if issue.user_id == current_user.id %}
                         {% if issue.resolved == False %}
                             <button onclick="checkIssue()">Marcar como resuelta</button>
@@ -372,8 +401,12 @@
                                 >
                             </div>
                             <div id="message" class="{{ 'sent' if message.user.username == current_user.username else 'received' }}">
-                                <script>console.log("{{ message.user.username }}")</script>
-                                <p class="username">{{ message.user.username }}</p>
+                                <div class="message-header">
+                                    <p class="username">{{ message.user.username }}</p>
+                                    {% if current_user.id == message.user_id %}
+                                        <img src="{{ url_for('static', filename='bin.png') }}" onclick="deleteMessage('{{ message.id }}')"></img>
+                                    {% endif %}
+                                </div>
                                 <p class="content">{{ message.content }}</p>
                                 <p class="date">{{ message.created_at.strftime('%d-%m-%Y %H:%M') }}</p>
                             </div>
@@ -457,11 +490,41 @@
             }, 500);
         }
 
+        function editIssue() {
+            const original_description = document.getElementById("description").textContent;
+            document.getElementById("description").style.display = 'none';
+            document.getElementById("edit-description").style.display = 'block';
+            document.getElementById("edit-description").value = original_description;
+            document.getElementById("new-message").readOnly = true;
+
+            document.getElementById("edit-description").addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && event.shiftKey) {
+                return; 
+            }
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const new_description = document.getElementById("edit-description").value
+                var url = window.location.href;
+                url = url + `/edit?description=${encodeURIComponent(new_description)}`;  
+                window.location.href = url;
+            }
+        });
+        }
+        
         function deleteIssue() {
             var confirmDelete = confirm("¿Estás seguro de que quieres eliminar esta duda?");
             if (confirmDelete) {
                 var url = window.location.href;
                 url = url + "/delete";  
+                window.location.href = url;
+            }
+        }
+
+        function deleteMessage(id) {
+            var confirmDelete = confirm("¿Estás seguro de que quieres eliminar este mensaje?");
+            if (confirmDelete) {
+                var url = window.location.href;
+                url = url + `/delete/${id}`;  
                 window.location.href = url;
             }
         }

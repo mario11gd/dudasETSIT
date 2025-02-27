@@ -298,6 +298,17 @@ def issue(group, id):
             db.session.commit()
     return render_template('issue.html', group=group, issue=issue, messages=sorted_messages, message_votes=message_votes, user_votes=user_votes, user_issue_vote=user_issue_vote)
 
+# Ruta para editar una duda
+@app.route('/<group>/issue/<id>/edit')
+@login_required
+def edit(group, id):
+    new_description = request.args.get('description', '').strip()
+    new_description = new_description.replace('\n', '<br>')
+    issue = Issue.query.filter_by(id=id).first()
+    issue.description = new_description
+    db.session.commit()
+    return redirect(url_for('issue', group=group, id=id))
+
 # Ruta para eliminar una duda
 @app.route('/<group>/issue/<id>/delete')
 @login_required
@@ -306,6 +317,15 @@ def delete(group, id):
     db.session.delete(issue)
     db.session.commit()
     return redirect(url_for('home', group=group))
+
+# Ruta para eliminar un mensaje
+@app.route('/<group>/issue/<id>/delete/<message_id>')
+@login_required
+def delete_message(group, id, message_id):
+    message = Message.query.filter_by(id=message_id).first()
+    db.session.delete(message)
+    db.session.commit()
+    return redirect(url_for('issue', group=group, id=id))
 
 # Ruta para marcar una duda como resuelta
 @app.route('/<group>/issue/<id>/check')
