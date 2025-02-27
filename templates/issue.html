@@ -407,7 +407,7 @@
                                         <img src="{{ url_for('static', filename='bin.png') }}" onclick="deleteMessage('{{ message.id }}')"></img>
                                     {% endif %}
                                 </div>
-                                <p class="content">{{ message.content }}</p>
+                                <p class="content">{{ message.content|safe }}</p>
                                 <p class="date">{{ message.created_at.strftime('%d-%m-%Y %H:%M') }}</p>
                             </div>
                         </div>

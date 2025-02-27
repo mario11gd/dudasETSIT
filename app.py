@@ -205,7 +205,7 @@ def home(group):
     group_id = Group.query.filter_by(name=group).first().id
     if request.method == 'POST':
         title = request.form['title']
-        description = request.form['description']
+        description = request.form['description'].replace('\n', '<br>')
         tags_input = request.form['tags']
         existing_issue = Issue.query.filter_by(title=title, description=description).first()
         if existing_issue:
@@ -292,7 +292,7 @@ def issue(group, id):
     if request.method == 'POST':
         if not issue.resolved:
             data = request.json
-            message_content = data.get('text')
+            message_content = data.get('text').replace('\n', '<br>')
             new_message = Message(content=message_content, issue_id=id, user_id=current_user.id, created_at=datetime.now())
             db.session.add(new_message)
             db.session.commit()
