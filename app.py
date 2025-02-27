@@ -1,13 +1,12 @@
-from flask import Flask, render_template, redirect, url_for, request,flash
+from flask import Flask, render_template, redirect, url_for, request
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import joinedload, aliased
-from sqlalchemy.sql import func, desc
+from sqlalchemy.sql import or_, desc
 from datetime import datetime
 import re
 from dateutil.relativedelta import relativedelta
 import bcrypt
-import pytz
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -24,12 +23,12 @@ login_manager.login_view = 'login'
 class MessageVotes(db.Model):
     __tablename__ = 'message_votes'
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
-    message_id = db.Column(db.Integer, db.ForeignKey('message.id'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), primary_key=True)
+    message_id = db.Column(db.Integer, db.ForeignKey('message.id', ondelete='CASCADE'), primary_key=True)
     vote_type = db.Column(db.Integer, nullable=False)  # 1 para upvote, -1 para downvote
 
-    user = db.relationship('User', backref=db.backref('message_votes', lazy=True))
-    message = db.relationship('Message', backref=db.backref('message_votes', lazy=True))
+    user = db.relationship('User', backref=db.backref('message_votes', lazy=True, cascade="all, delete-orphan"))
+    message = db.relationship('Message', backref=db.backref('message_votes', lazy=True, cascade="all, delete-orphan"))
 
     def __repr__(self):
         return f'<MessageVotes user={self.user_id} message={self.message_id} vote_type={self.vote_type}>'
@@ -37,12 +36,12 @@ class MessageVotes(db.Model):
 class IssueVotes(db.Model):
     __tablename__ = 'issue_votes'
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
-    issue_id = db.Column(db.Integer, db.ForeignKey('issue.id'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), primary_key=True)
+    issue_id = db.Column(db.Integer, db.ForeignKey('issue.id', ondelete='CASCADE'), primary_key=True)
     vote_type = db.Column(db.Integer, nullable=False)  # 1 para upvote, -1 para downvote
 
-    user = db.relationship('User', backref=db.backref('issue_votes', lazy=True))
-    issue = db.relationship('Issue', backref=db.backref('issue_votes', lazy=True))
+    user = db.relationship('User', backref=db.backref('issue_votes', lazy=True, cascade="all, delete-orphan"))
+    issue = db.relationship('Issue', backref=db.backref('issue_votes', lazy=True, cascade="all, delete-orphan"))
 
     def __repr__(self):
         return f'<IssueVotes user={self.user_id} issue={self.issue_id} vote_type={self.vote_type}>'
@@ -50,11 +49,11 @@ class IssueVotes(db.Model):
 class IssueTags(db.Model):
     __tablename__ = 'issue_tags'
 
-    issue_id = db.Column(db.Integer, db.ForeignKey('issue.id'), primary_key=True)
-    tag_id = db.Column(db.Integer, db.ForeignKey('tag.id'), primary_key=True)
+    issue_id = db.Column(db.Integer, db.ForeignKey('issue.id', ondelete='CASCADE'), primary_key=True)
+    tag_id = db.Column(db.Integer, db.ForeignKey('tag.id', ondelete='CASCADE'), primary_key=True)
 
-    issue = db.relationship('Issue', backref=db.backref('issue_tags', lazy=True))
-    tag = db.relationship('Tag', backref=db.backref('issue_tags', lazy=True))
+    issue = db.relationship('Issue', backref=db.backref('issue_tags', lazy=True, cascade="all, delete-orphan"))
+    tag = db.relationship('Tag', backref=db.backref('issue_tags', lazy=True, cascade="all, delete-orphan"))
 
     def __repr__(self):
         return f'<IssueTags issue_id={self.issue_id} tag_id={self.tag_id}>'
@@ -96,10 +95,9 @@ class Issue(db.Model):
     resolved = db.Column(db.Boolean, default=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
-    messages = db.relationship('Message', backref=db.backref('issue', lazy=True))
     votes = db.Column(db.Integer, default=0)
     voters = db.relationship('User', secondary='issue_votes', backref=db.backref('voted_issues', lazy=True))
-    
+
     @property
     def time_since_created(self):
         now = datetime.now()
@@ -145,8 +143,9 @@ class Message(db.Model):
     votes = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.now())
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    issue_id = db.Column(db.Integer, db.ForeignKey('issue.id'), nullable=False)
+    issue_id = db.Column(db.Integer, db.ForeignKey('issue.id', ondelete='CASCADE'), nullable=False)
     voters = db.relationship('User', secondary='message_votes', backref=db.backref('voted_messages', lazy=True))
+    issue = db.relationship('Issue', backref=db.backref('message', lazy=True, cascade="all, delete-orphan"))
 
 # Cargar usuario
 @login_manager.user_loader
@@ -164,7 +163,6 @@ def register():
         username = request.form['username']
         email = request.form['email']
         if not re.match(r"[^@]+@alumnos\.upm\.es$", email):
-            flash("El email debe terminar con @alumnos.upm.es")
             return redirect(url_for('register'))
         password = request.form['password']
         bytes = password.encode('utf-8') 
@@ -190,7 +188,6 @@ def login():
             login_user(user)
             return redirect(url_for('home', group=user.group.name))
         else:
-            flash("Usuario o contraseña incorrecto")
             return redirect(url_for('login'))
     return render_template('login.html')
 
@@ -203,6 +200,8 @@ def home_redirect():
 @app.route('/<group>/home', methods=['GET', 'POST'])
 @login_required
 def home(group):
+    query = request.args.get('q', '').strip()
+    sort_field = request.args.get('sort_field', 'recientes')
     group_id = Group.query.filter_by(name=group).first().id
     if request.method == 'POST':
         title = request.form['title']
@@ -210,7 +209,7 @@ def home(group):
         tags_input = request.form['tags']
         existing_issue = Issue.query.filter_by(title=title, description=description).first()
         if existing_issue:
-            flash("Ya existe una duda con el mismo título y descripción.")
+            return render_template('home.html', sort_field=sort_field, group=group, issues=issues, num_messages=num_messages, tags=tags, query=query)
         else:
             new_issue = Issue(title=title, description=description, user_id=current_user.id, group_id=group_id, created_at=datetime.now(), modified_at=datetime.now(), resolved=False)
             db.session.add(new_issue)
@@ -225,23 +224,34 @@ def home(group):
             new_issue.tags.extend(tags)  
             print(tags)  
             db.session.commit()
-            flash("Duda creada con éxito.")
 
-    sort_field = request.args.get('sort_field', 'recientes')
-    num_messages = {}
+    base_query = Issue.query.filter(
+        Issue.group_id == group_id,
+        or_(
+            Issue.title.ilike(f"%{query}%"),
+            Issue.description.ilike(f"%{query}%"),
+            Issue.tags.any(Tag.name.ilike(f"%{query}%"))
+        )
+    )
+    
     if sort_field == 'recientes':
-        issues = Issue.query.filter_by(group_id=group_id).order_by(Issue.created_at.desc()).all()
+        issues = base_query.order_by(Issue.created_at.desc()).all()
     elif sort_field == 'tendencia':
-        issues = Issue.query.filter_by(group_id=group_id).order_by(Issue.votes.desc()).order_by(Issue.created_at.desc()).all()
+        issues = base_query.order_by(Issue.votes.desc(), Issue.created_at.desc()).all()
     elif sort_field == 'activas':
         latest_message = aliased(Message)
-        issues = db.session.query(Issue).join(latest_message, latest_message.issue_id == Issue.id).order_by(desc(latest_message.created_at)).filter(Issue.resolved == False).all()
+        issues = base_query.join(latest_message, latest_message.issue_id == Issue.id).order_by(desc(latest_message.created_at)).filter(Issue.resolved == False).all()
     elif sort_field == 'resueltas':
-        issues = Issue.query.filter_by(group_id=group_id, resolved=True).order_by(Issue.created_at.desc()).all()
-
+        issues = base_query.filter(Issue.resolved == True).order_by(Issue.created_at.desc()).all()
+    else:
+        issues = base_query.all()
+    
+    num_messages = {}
     tags = {}
-    for issue in issues:
-        num_messages[issue.id] = len(issue.messages)  
+    issues_unfiltered = db.session.query(Issue).all()
+    for issue in issues_unfiltered:
+        messages = Message.query.filter_by(issue_id=issue.id).all()
+        num_messages[issue.id] = len(messages)  
         for tag in issue.tags:
             if tag in tags.keys():
                 tags[tag] += 1
@@ -250,7 +260,7 @@ def home(group):
 
     tags = dict(sorted(tags.items(), key=lambda item: item[1], reverse=True))
 
-    return render_template('home.html', sort_field=sort_field, group=group, issues=issues, num_messages=num_messages, tags=tags)
+    return render_template('home.html', sort_field=sort_field, group=group, issues=issues, num_messages=num_messages, tags=tags, query=query)
 
 # Ruta de dudas (requiere autenticación)
 @app.route('/<group>/issue/<id>', methods=['GET', 'POST'])
@@ -287,6 +297,15 @@ def issue(group, id):
             db.session.add(new_message)
             db.session.commit()
     return render_template('issue.html', group=group, issue=issue, messages=sorted_messages, message_votes=message_votes, user_votes=user_votes, user_issue_vote=user_issue_vote)
+
+# Ruta para eliminar una duda
+@app.route('/<group>/issue/<id>/delete')
+@login_required
+def delete(group, id):
+    issue = Issue.query.filter_by(id=id).first()
+    db.session.delete(issue)
+    db.session.commit()
+    return redirect(url_for('home', group=group))
 
 # Ruta para marcar una duda como resuelta
 @app.route('/<group>/issue/<id>/check')

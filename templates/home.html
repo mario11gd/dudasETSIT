@@ -28,6 +28,7 @@
         .title {
             font-size: 25px;
             font-weight: bold;
+            cursor: pointer;
         }
         .date-time {
             font-size: 15px;
@@ -381,7 +382,7 @@
 </head>
 <body>
     <div class="top-bar">
-        <h3 class="title">DudasETSIT</h3>
+        <h3 onclick="window.location.href='{{ url_for('home', group=group) }}'" class="title">DudasETSIT</h3>
         <div class="date-time" id="date-time"></div>
         <div class="user-info">
             <span class="username" id="username">{{ current_user.username }}</span>
@@ -402,10 +403,10 @@
     <div class="filters">
         <p class="issues-number">{{ issues|length }} dudas</p>
         <div class="filters-container">
-            <p class="{{ 'active' if sort_field == 'recientes' else '' }}" onclick="window.location.href='{{ url_for('home', group=group, sort_field='recientes') }}'">Recientes</p>
-            <p class="{{ 'active' if sort_field == 'tendencia' else '' }}" onclick="window.location.href='{{ url_for('home', group=group, sort_field='tendencia') }}'">Tendencia</p>
-            <p class="{{ 'active' if sort_field == 'activas' else '' }}"onclick="window.location.href='{{ url_for('home', group=group, sort_field='activas') }}'">Activas</p>
-            <p class="{{ 'active' if sort_field == 'resueltas' else '' }}" onclick="window.location.href='{{ url_for('home', group=group, sort_field='resueltas') }}'">Resueltas</p>
+            <p class="{{ 'active' if sort_field == 'recientes' else '' }}" onclick="window.location.href='{{ url_for('home', group=group, sort_field='recientes', q=query) }}'">Recientes</p>
+            <p class="{{ 'active' if sort_field == 'tendencia' else '' }}" onclick="window.location.href='{{ url_for('home', group=group, sort_field='tendencia', q=query) }}'">Tendencia</p>
+            <p class="{{ 'active' if sort_field == 'activas' else '' }}"onclick="window.location.href='{{ url_for('home', group=group, sort_field='activas', q=query) }}'">Activas</p>
+            <p class="{{ 'active' if sort_field == 'resueltas' else '' }}" onclick="window.location.href='{{ url_for('home', group=group, sort_field='resueltas', q=query) }}'">Resueltas</p>
         </div>
     </div>
     <div class="new-issue">
@@ -469,7 +470,7 @@
         document.getElementById('search-input').addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 const query = event.target.value;
-                window.location.href = `/search?q=${encodeURIComponent(query)}`;
+                window.location.href = `?sort_field={{ sort_field }}&q=${encodeURIComponent(query)}`;
             }
         });
 
@@ -487,7 +488,6 @@
             const input = document.getElementById('tag-input');
             const tagsList = document.getElementById('tags-list');
             const tags = input.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
-            console.log(tags)
 
             if (input.value.endsWith(',')) {
                 if (tags.slice(0, -1).includes(tags[tags.length - 1])) {
@@ -527,7 +527,13 @@
             } else {
                     input.removeAttribute('readonly');  
             }
-                
+            
+            if(tags.length > 3) {
+                input.value = '';
+                alert('Has introducido más de 3 etiquetas');
+                tags.length = 0;
+                tagsList.innerHTML = '';
+            }
 
             const tagsInputHidden = document.getElementById('tags-input-hidden');
             tagsInputHidden.value = tags.join(', ')
@@ -546,6 +552,10 @@
                 e.preventDefault();
                 updateTags()
             }
+        });
+
+        document.getElementById("tag-input").addEventListener("paste", (event) => {
+            updateTags();
         });
 
         var groupName = "{{ group }}";

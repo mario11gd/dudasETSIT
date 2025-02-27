@@ -83,7 +83,15 @@
             padding: 15px;
             background-color: #f4f4f4;
             border-bottom: 1.2px solid #b5b3b3;
-        }   
+        } 
+        .link {
+            font-size: 14px;
+        }
+        .link:hover {
+            text-decoration: underline;
+            color: #2980b9;
+            cursor: pointer;
+        }  
         .issue-header {
             display: flex;
             justify-content: space-between;
@@ -136,15 +144,6 @@
             height: 40px;
         }
 
-        .issue-container button:hover {
-            background-color: #007bff;
-            color: white;
-        }
-
-        .issue-container button:active {
-            background-color: #0056b3;
-        }
-
         .issue-container button[onclick="uncheckIssue()"] {
             background-color: #dc3545;
             color: white;
@@ -162,6 +161,7 @@
         .issue-container button[onclick="checkIssue()"]:hover {
             background-color: #218838;
         }
+
         #answers-container {
             flex: 1;
             padding: 15px;
@@ -320,6 +320,10 @@
                     >
                 </div>
                 <div class="issue-container">
+                    {% if current_user.id == issue.user_id %}
+                        <span class="link" onclick="editIssue()">Editar duda</span> | 
+                        <span class="link" onclick="deleteIssue()">Eliminar duda</span>
+                    {% endif %}
                     <div class="issue-header">
                         <h1 onclick="joinRoom(this)" data-room="{{ issue.id }}">{{ issue.title }}</h1>
                         <div class="tags-container">
@@ -398,8 +402,6 @@
             }
             messagesContainer.scrollTop = 0;
             setInterval(function() {
-                console.log(messagesContainer.scrollHeight - messagesContainer.scrollTop)
-                console.log(messagesContainer.clientHeight)
                 if (isScrolledToBottom() && document.getElementById("new-message").value === '' && !issueResolved) {
                     location.reload();  
                 }
@@ -454,6 +456,16 @@
                 location.reload();
             }, 500);
         }
+
+        function deleteIssue() {
+            var confirmDelete = confirm("¿Estás seguro de que quieres eliminar esta duda?");
+            if (confirmDelete) {
+                var url = window.location.href;
+                url = url + "/delete";  
+                window.location.href = url;
+            }
+        }
+
         function checkIssue() {
             var url = window.location.href;
             url = url + "/check";  
