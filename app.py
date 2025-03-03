@@ -154,7 +154,7 @@ def load_user(user_id):
 
 @app.route('/')
 def main():
-    return redirect(url_for('login'))
+    return redirect(url_for('home_get', group="3ºGISD"))
 
 # Ruta de registro
 @app.route('/register', methods=['GET', 'POST'])
@@ -186,7 +186,7 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and bcrypt.checkpw(password.encode("utf-8"), user.password):
             login_user(user)
-            return redirect(url_for('home', group=user.group.name))
+            return redirect(url_for('home_get', group=user.group.name))
         else:
             return redirect(url_for('login'))
     return render_template('login.html')
@@ -194,36 +194,15 @@ def login():
 @app.route('/home')
 @login_required
 def home_redirect():
-    return redirect(url_for('home', group=current_user.group.name))
+    return redirect(url_for('home_get', group=current_user.group.name))
 
-# Ruta de home, distinta para cada grupo (requiere autenticación)
-@app.route('/<group>/home', methods=['GET', 'POST'])
-@login_required
-def home(group):
+# Ruta de home, distinta para cada grupo (POST requiere autenticación)
+@app.route('/<group>/home', methods=['GET'])
+def home_get(group):
     query = request.args.get('q', '').strip()
     sort_field = request.args.get('sort_field', 'recientes')
     group_id = Group.query.filter_by(name=group).first().id
-    if request.method == 'POST':
-        title = request.form['title']
-        description = request.form['description'].replace('\n', '<br>')
-        tags_input = request.form['tags']
-        existing_issue = Issue.query.filter_by(title=title, description=description).first()
-        if existing_issue:
-            return render_template('home.html', sort_field=sort_field, group=group, issues=issues, num_messages=num_messages, tags=tags, query=query)
-        else:
-            new_issue = Issue(title=title, description=description, user_id=current_user.id, group_id=group_id, created_at=datetime.now(), modified_at=datetime.now(), resolved=False)
-            db.session.add(new_issue)
-            tag_names = [tag.strip() for tag in tags_input.split(',')]
-            tags = []
-            for tag_name in tag_names:
-                tag = Tag.query.filter_by(name=tag_name).first()
-                if not tag:
-                    tag = Tag(name=tag_name)  
-                    db.session.add(tag)
-                tags.append(tag)
-            new_issue.tags.extend(tags)  
-            print(tags)  
-            db.session.commit()
+    groups = Group.query.with_entities(Group.name).all()
 
     base_query = Issue.query.filter(
         Issue.group_id == group_id,
@@ -233,7 +212,7 @@ def home(group):
             Issue.tags.any(Tag.name.ilike(f"%{query}%"))
         )
     )
-    
+
     if sort_field == 'recientes':
         issues = base_query.order_by(Issue.created_at.desc()).all()
     elif sort_field == 'tendencia':
@@ -245,7 +224,7 @@ def home(group):
         issues = base_query.filter(Issue.resolved == True).order_by(Issue.created_at.desc()).all()
     else:
         issues = base_query.all()
-    
+
     num_messages = {}
     tags = {}
     issues_unfiltered = db.session.query(Issue).all()
@@ -253,14 +232,42 @@ def home(group):
         messages = Message.query.filter_by(issue_id=issue.id).all()
         num_messages[issue.id] = len(messages)  
         for tag in issue.tags:
-            if tag in tags.keys():
-                tags[tag] += 1
-            else:
-                tags[tag] = 1
+            tags[tag] = tags.get(tag, 0) + 1
 
     tags = dict(sorted(tags.items(), key=lambda item: item[1], reverse=True))
 
-    return render_template('home.html', sort_field=sort_field, group=group, issues=issues, num_messages=num_messages, tags=tags, query=query)
+    return render_template('home.html', sort_field=sort_field, groups=groups, group=group, issues=issues, num_messages=num_messages, tags=tags, query=query)
+
+
+@app.route('/<group>/home', methods=['POST'])
+@login_required
+def home_post(group):
+    title = request.form['title']
+    description = request.form['description'].replace('\n', '<br>')
+    tags_input = request.form['tags']
+    group_id = Group.query.filter_by(name=group).first().id
+
+    existing_issue = Issue.query.filter_by(title=title, description=description).first()
+    if existing_issue:
+        return redirect(url_for('home_get', group=group))  
+
+    new_issue = Issue(title=title, description=description, user_id=current_user.id, group_id=group_id, created_at=datetime.now(), modified_at=datetime.now(), resolved=False)
+    db.session.add(new_issue)
+
+    tag_names = [tag.strip() for tag in tags_input.split(',')]
+    tags = []
+    for tag_name in tag_names:
+        tag = Tag.query.filter_by(name=tag_name).first()
+        if not tag:
+            tag = Tag(name=tag_name)
+            db.session.add(tag)
+        tags.append(tag)
+
+    new_issue.tags.extend(tags)
+    db.session.commit()
+
+    return redirect(url_for('home_get', group=group))
+
 
 # Ruta de dudas (requiere autenticación)
 @app.route('/<group>/issue/<id>', methods=['GET', 'POST'])
@@ -268,6 +275,7 @@ def home(group):
 def issue(group, id):
     issue = Issue.query.filter_by(id=id).first()
     user_issue_vote = IssueVotes.query.filter_by(user_id=current_user.id, issue_id=issue.id).first()
+    groups = Group.query.with_entities(Group.name).all()
     if user_issue_vote:
         user_issue_vote = user_issue_vote.vote_type
     messages = Message.query.filter_by(issue_id=id).order_by(Message.created_at.asc()).options(joinedload(Message.user)).all()
@@ -296,7 +304,7 @@ def issue(group, id):
             new_message = Message(content=message_content, issue_id=id, user_id=current_user.id, created_at=datetime.now())
             db.session.add(new_message)
             db.session.commit()
-    return render_template('issue.html', group=group, issue=issue, messages=sorted_messages, message_votes=message_votes, user_votes=user_votes, user_issue_vote=user_issue_vote)
+    return render_template('issue.html', groups=groups, group=group, issue=issue, messages=sorted_messages, message_votes=message_votes, user_votes=user_votes, user_issue_vote=user_issue_vote)
 
 # Ruta para editar una duda
 @app.route('/<group>/issue/<id>/edit')
@@ -316,7 +324,7 @@ def delete(group, id):
     issue = Issue.query.filter_by(id=id).first()
     db.session.delete(issue)
     db.session.commit()
-    return redirect(url_for('home', group=group))
+    return redirect(url_for('home_get', group=group))
 
 # Ruta para eliminar un mensaje
 @app.route('/<group>/issue/<id>/delete/<message_id>')

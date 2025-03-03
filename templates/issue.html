@@ -34,10 +34,7 @@
             font-weight: bold;
             cursor: pointer;
         }
-        .date-time {
-            font-size: 15px;
-            color: #b0b0b0;
-        }
+
         .user-info {
             font-size: 15px;
             margin-right: 5%;
@@ -71,6 +68,46 @@
 
         .logout:hover {
             background-color: #b71c1c;
+        }
+        select {
+            padding: 10px;
+            font-size: 20px;
+            background-color: transparent;
+            color: white;
+            border: none;
+            outline: none;
+            appearance: none;  
+            cursor: pointer;
+            transition: background-color 0.3s ease, border 0.3s ease;
+        }
+
+        select:focus {
+            outline: none;
+        }
+
+        optgroup {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+        }
+
+        option {
+            font-size: 16px;
+            padding: 10px;
+            background-color: #fff;
+            color: #333;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        option:hover {
+            background-color: #d48434 !important;
+        }
+
+        select option:checked {
+            background-color: #d48434;
+            color: #fff;
         }
         .issue_and_answers {
             overflow-y: auto;
@@ -316,8 +353,18 @@
 </head>
 <body>
     <div class="top-bar">
-        <h3 onclick="window.location.href='{{ url_for('home', group=group) }}'" class="title">DudasETSIT</h3>
-        <div class="date-time" id="date-time"></div>
+        <h3 onclick="window.location.href='{{ url_for('home_get', group=group) }}'" class="title">DudasETSIT</h3>
+        <select onchange="window.location.href='/' + this.value + '/home'">
+            <optgroup label="GISD">
+            {% for group_option in groups %}
+                {% if 'GISD' in group_option[0] %}
+                    <option value="{{ group_option[0] }}" {% if group_option[0] == group %}selected{% endif %}>
+                        {{ group_option[0] }}
+                    </option>
+                {% endif %}
+            {% endfor %}
+            </optgroup>
+        </select>
         <div class="user-info">
             <span id="username">{{ current_user.username }}</span>
             <button onclick=logout() class="logout">Log out</button> 
@@ -353,7 +400,7 @@
                         <span class="link" onclick="deleteIssue()">Eliminar duda</span>
                     {% endif %}
                     <div class="issue-header">
-                        <h1 onclick="joinRoom(this)" data-room="{{ issue.id }}">{{ issue.title }}</h1>
+                        <h1>{{ issue.title }}</h1>
                         <div class="tags-container">
                             {% for tag in issue.tags %}
                                 <span class="tag">#{{ tag.name }}</span>
@@ -440,18 +487,6 @@
                 }
             }, 5000);
         };
-
-        function updateDateTime() {
-            const now = new Date();
-            const date = now.toLocaleDateString(); 
-            const time = now.toLocaleTimeString(); 
-
-            document.getElementById('date-time').textContent = `${date} | ${time}`;
-        }
-
-        setInterval(updateDateTime, 1000);
-
-        updateDateTime();
 
         function updateIssueMargin() {
             var leftMargin = window.getComputedStyle(document.getElementById('messages')).marginLeft;

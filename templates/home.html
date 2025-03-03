@@ -30,10 +30,7 @@
             font-weight: bold;
             cursor: pointer;
         }
-        .date-time {
-            font-size: 15px;
-            color: #b0b0b0;
-        }
+
         .user-info {
             font-size: 15px;
             margin-right: 5%;
@@ -75,6 +72,48 @@
             margin-left: auto;
             margin-right: auto;
         }
+        
+        select {
+            padding: 10px;
+            font-size: 20px;
+            background-color: transparent;
+            color: white;
+            border: none;
+            outline: none;
+            appearance: none;  
+            cursor: pointer;
+            transition: background-color 0.3s ease, border 0.3s ease;
+        }
+
+        select:focus {
+            outline: none;
+        }
+
+        optgroup {
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+        }
+
+        option {
+            font-size: 16px;
+            padding: 10px;
+            background-color: #fff;
+            color: #333;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        option:hover {
+            background-color: #d48434 !important;
+        }
+
+        select option:checked {
+            background-color: #d48434;
+            color: #fff;
+        }
+
         .search-area {
             display: flex;
             align-items: center;
@@ -380,14 +419,29 @@
 
     </style>    
 </head>
-<body>
+<body>    
     <div class="top-bar">
-        <h3 onclick="window.location.href='{{ url_for('home', group=group) }}'" class="title">DudasETSIT</h3>
-        <div class="date-time" id="date-time"></div>
-        <div class="user-info">
-            <span class="username" id="username">{{ current_user.username }}</span>
-            <button onclick=logout() class="logout">Log out</button> 
-        </div>
+        <h3 onclick="window.location.href='{{ url_for('home_get', group=group) }}'" class="title">DudasETSIT</h3>
+        <select onchange="window.location.href='/' + this.value + '/home'">
+            <optgroup label="GISD">
+            {% for group_option in groups %}
+                {% if 'GISD' in group_option[0] %}
+                    <option value="{{ group_option[0] }}" {% if group_option[0] == group %}selected{% endif %}>
+                        {{ group_option[0] }}
+                    </option>
+                {% endif %}
+            {% endfor %}
+            </optgroup>
+        </select>
+        {% if current_user.is_authenticated %}
+            <div class="user-info">
+                <span class="username" id="username">{{ current_user.username }}</span>
+                <button onclick=logout() class="logout">Log out</button> 
+            </div>
+        {% else %}
+            <div class="user-info">
+            </div>
+        {% endif %}
     </div>
     <div class="left-margin-aux"></div>
     <div class="search-area">
@@ -403,15 +457,21 @@
     <div class="filters">
         <p class="issues-number">{{ issues|length }} dudas</p>
         <div class="filters-container">
-            <p class="{{ 'active' if sort_field == 'recientes' else '' }}" onclick="window.location.href='{{ url_for('home', group=group, sort_field='recientes', q=query) }}'">Recientes</p>
-            <p class="{{ 'active' if sort_field == 'tendencia' else '' }}" onclick="window.location.href='{{ url_for('home', group=group, sort_field='tendencia', q=query) }}'">Tendencia</p>
-            <p class="{{ 'active' if sort_field == 'activas' else '' }}"onclick="window.location.href='{{ url_for('home', group=group, sort_field='activas', q=query) }}'">Activas</p>
-            <p class="{{ 'active' if sort_field == 'resueltas' else '' }}" onclick="window.location.href='{{ url_for('home', group=group, sort_field='resueltas', q=query) }}'">Resueltas</p>
+            <p class="{{ 'active' if sort_field == 'recientes' else '' }}" onclick="window.location.href='{{ url_for('home_get', group=group, sort_field='recientes', q=query) }}'">Recientes</p>
+            <p class="{{ 'active' if sort_field == 'tendencia' else '' }}" onclick="window.location.href='{{ url_for('home_get', group=group, sort_field='tendencia', q=query) }}'">Tendencia</p>
+            <p class="{{ 'active' if sort_field == 'activas' else '' }}"onclick="window.location.href='{{ url_for('home_get', group=group, sort_field='activas', q=query) }}'">Activas</p>
+            <p class="{{ 'active' if sort_field == 'resueltas' else '' }}" onclick="window.location.href='{{ url_for('home_get', group=group, sort_field='resueltas', q=query) }}'">Resueltas</p>
         </div>
     </div>
-    <div class="new-issue">
-        <button onclick="unleashForm()">Nueva duda</button>
-    </div>
+    {% if current_user.is_authenticated %}
+        <div class="new-issue">
+            <button onclick="unleashForm()">Nueva duda</button>
+        </div>
+    {% else %}
+        <div class="new-issue">
+            <button onclick="window.location.href='{{ url_for('login') }}'">Nueva duda</button>
+        </div>
+    {% endif %}
     <div class="issue-form">
         <form method="POST">
             <input type="text" name="title" placeholder="Título" required>
@@ -466,7 +526,7 @@
         window.onresize = function() {
             updateLeftMargin();
         };
-
+        
         document.getElementById('search-input').addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 const query = event.target.value;
@@ -564,18 +624,6 @@
             var room = element.getAttribute('data-room');
             window.location = "/" + groupName + "/issue/" + room;
         }
-
-        function updateDateTime() {
-            const now = new Date();
-            const date = now.toLocaleDateString(); 
-            const time = now.toLocaleTimeString(); 
-
-            document.getElementById('date-time').textContent = `${date} | ${time}`;
-        }
-
-        setInterval(updateDateTime, 1000);
-
-        updateDateTime();
 
         function logout() {
             window.location = '/logout';
