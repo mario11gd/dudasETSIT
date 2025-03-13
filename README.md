@@ -46,7 +46,6 @@ The database structure is represented in the following diagram:
 ├── static/             # Static files (images)
 ├── templates/          # HTML templates
 ├── database_structure/ # Database structure
-├── instance/           # Database
 └── scripts/            # Auxiliary scripts
 ```
 

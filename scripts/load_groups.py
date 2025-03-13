@@ -3,7 +3,7 @@ import sqlite3
 def load_group(group_name):
     try:
         try:
-            con = sqlite3.connect('../instance/dudasETSIT.db')
+            con = sqlite3.connect('instance/dudasETSIT.db')
         except:
             print("An error occured while trying to connect to the database")
             return 1
