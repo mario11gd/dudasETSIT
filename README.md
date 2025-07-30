@@ -4,9 +4,17 @@ Dudas ETSIT is a web application developed in Flask to manage questions and disc
 
 ## Features
 - **User authentication**: Register and log in.
+
+![Log in page](static/log_in.png)
+
+- **Create issues**: Users can create, edit and delete issues. They can add tags too.
+
+![Create issue](static/new_issue.png)
+
+- **Messages and comments**: Users can post answers and respond to others.
 - **Voting system**: Users can vote for the best answers and issues.
-- **Messages and comments**: Users can post questions and respond to others.
-- **Simple web interface** based on HTML and CSS.
+
+![Issue page](static/issue.png)
 
 ## Requirements
 - Python 3.8+
@@ -29,7 +37,7 @@ Dudas ETSIT is a web application developed in Flask to manage questions and disc
    ```
 
 ## Usage
-1. Load the groups into the database:
+1. Load the groups into the database (only the first time):
    ```bash
    python scripts/load_groups.py
    ```
