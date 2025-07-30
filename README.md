@@ -23,7 +23,7 @@ Dudas ETSIT is a web application developed in Flask to manage questions and disc
 ## Installation
 1. Clone this repository:
    ```bash
-   git clone https://github.com/mario11gd/dudasETSIT.git
+   git clone https://github.com/maariogutierrez/dudasETSIT.git
    cd dudasETSIT
    ```
 2. Create and activate a virtual environment:
