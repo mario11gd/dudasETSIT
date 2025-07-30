@@ -38,6 +38,7 @@ Dudas ETSIT is a web application developed in Flask to manage questions and disc
    python app.py
    ```
 3. Access the application at `http://127.0.0.1:5000/`
+
 ![Main page](static/main_page.png)
 
 Log in is required to create new issues or interact with any existing one.
