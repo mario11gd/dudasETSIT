@@ -8,6 +8,10 @@ Dudas ETSIT is a web application developed in Flask to manage questions and disc
 - **Messages and comments**: Users can post questions and respond to others.
 - **Simple web interface** based on HTML and CSS.
 
+## Requirements
+- Python 3.8+
+- pip
+
 ## Installation
 1. Clone this repository:
    ```bash
@@ -23,20 +27,25 @@ Dudas ETSIT is a web application developed in Flask to manage questions and disc
    ```bash
    pip install -r requirements.txt
    ```
-4. Load the groups into the database:
+
+## Usage
+1. Load the groups into the database:
    ```bash
    python scripts/load_groups.py
    ```
-5. Run the application:
+2. Run the application:
    ```bash
    python app.py
    ```
-6. Access the application at `http://127.0.0.1:5000/`
+3. Access the application at `http://127.0.0.1:5000/`
+![Main page](static/main_page.png)
+
+Log in is required to create new issues or interact with any existing one.
 
 ## Database Structure
 The database structure is represented in the following diagram:
 
-![alt text](database_structure/dudasETSIT.png)
+![Database structure](database_structure/dudasETSIT.png)
 
 ## Project Structure
 ```
@@ -53,4 +62,5 @@ The database structure is represented in the following diagram:
 If you want to contribute, fork the repository, create a branch with your changes, and submit a pull request.
 
 ## License
-This project is distributed under the MIT license.
+This project is licensed under the MIT License.
+See the [LICENSE](LICENSE) file for details.
